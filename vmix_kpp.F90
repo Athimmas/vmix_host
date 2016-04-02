@@ -1041,7 +1041,6 @@
    enddo
    enddo 
 
-   VISC(:,:,1) = c0
 
    if (partial_bottom_cells) then
       do k=2,km
@@ -1056,6 +1055,7 @@
        enddo 
       enddo
 
+      VISC(:,:,1) = c0
       do k=2,km
        do j=1,ny_block
         do i=1,nx_block
@@ -1104,11 +1104,6 @@
             VISC(i,j,k) = (DBSFC(i,j,k)-DBSFC(i,j,k-1))/ &
                           (zt(k) - zt(k-1))
          endif
-        enddo
-        enddo
-
-        do j=1,ny_block
-         do i=1,nx_block
  
 
              if( VISC(i,j,k) >= USTAR(i,j) .and.              &
