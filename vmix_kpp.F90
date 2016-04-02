@@ -1097,19 +1097,35 @@
 
       VISC(:,:,1) = c0
       do k=2,km
-         where (USTAR > c0 )
-            VISC(:,:,k) = (DBSFC(:,:,k)-DBSFC(:,:,k-1))/ &
+
+       do j=1,ny_block
+        do i=1,nx_block 
+         if (USTAR(i,j) > c0 ) then
+            VISC(i,j,k) = (DBSFC(i,j,k)-DBSFC(i,j,k-1))/ &
                           (zt(k) - zt(k-1))
-         end where
-         where ( VISC(:,:,k) >= USTAR .and.              &
-                (VISC(:,:,k)-VISC(:,:,k-1)) /= c0 .and.  &
-                 USTAR > c0 )   ! avoid divide by zero
-            BFSFC = (VISC(:,:,k) - USTAR)/ &
-                    (VISC(:,:,k)-VISC(:,:,k-1))
-            HMXL(:,:,bid) = -p5*(zgrid(k  ) + zgrid(k-1))*(c1-BFSFC) &
-                            -p5*(zgrid(k-1) + zgrid(k-2))*BFSFC
-            USTAR(:,:) = c0
-         endwhere
+         endif
+        enddo
+        enddo
+
+        do j=1,ny_block
+         do i=1,nx_block
+ 
+
+             if( VISC(i,j,k) >= USTAR(i,j) .and.              &
+                (VISC(i,j,k)-VISC(i,j,k-1)) /= c0 .and.  &
+                 USTAR(i,j) > c0 ) then   ! avoid divide by zero
+
+                 BFSFC(i,j) = (VISC(i,j,k) - USTAR(i,j))/ &
+                       (VISC(i,j,k)-VISC(i,j,k-1))
+                 HMXL(i,j,bid) = -p5*(zgrid(k  ) + zgrid(k-1))*(c1-BFSFC(i,j)) &
+                                 -p5*(zgrid(k-1) + zgrid(k-2))*BFSFC(i,j)
+                 USTAR(i,j) = c0
+
+             endif
+
+          enddo
+         enddo 
+         
       enddo
    endif
 
