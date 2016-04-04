@@ -945,8 +945,6 @@
 !
 !-----------------------------------------------------------------------
 
-   start_time = omp_get_wtime()
-
    do k=1,km-1           
 
       if (partial_bottom_cells) then
@@ -1029,7 +1027,11 @@
 !  gradient criterion.  Use USTAR and BFSFC as temps.
 !
 !-----------------------------------------------------------------------
-   
+  
+   start_time = omp_get_wtime()
+
+
+   !$OMP PARALLEL DO DEFAULT(SHARED)PRIVATE(I,J)NUM_THREADS(16) 
    do j=1,ny_block
    do i=1,nx_block
       USTAR(i,j) = c0
@@ -1044,6 +1046,7 @@
 
    if (partial_bottom_cells) then
       do k=2,km
+       !$OMP PARALLEL DO DEFAULT(SHARED)PRIVATE(I,J)NUM_THREADS(16) 
        do j=1,ny_block
         do i=1,nx_block
          if (k <= KMT(i,j,bid)) then
@@ -1057,6 +1060,7 @@
 
       VISC(:,:,1) = c0
       do k=2,km
+       !$OMP PARALLEL DO DEFAULT(SHARED)PRIVATE(I,J)NUM_THREADS(16) 
        do j=1,ny_block
         do i=1,nx_block
 
@@ -1087,6 +1091,7 @@
    VISC(:,:,1) = c0
 
       do k=2,km
+       !$OMP PARALLEL DO DEFAULT(SHARED)PRIVATE(I,J)NUM_THREADS(16)   
        do j=1,ny_block
         do i=1,nx_block
            if (k <= KMT(i,j,bid)) then
@@ -1098,7 +1103,7 @@
       enddo
 
       do k=2,km
-
+       !$OMP PARALLEL DO DEFAULT(SHARED)PRIVATE(I,J)NUM_THREADS(16) 
        do j=1,ny_block
         do i=1,nx_block 
          if (USTAR(i,j) > c0 ) then
@@ -1127,14 +1132,17 @@
 
    end_time = omp_get_wtime()
 
+
+   if(my_task == master_task)then
    print *,"Time at where statments is ",end_time - start_time
+   endif
 
-      if(my_task == master_task)then
-      open(unit=10,file="/home/aketh/ocn_correctness_data/changed.txt",status="unknown",position="append",action="write",form="unformatted")
-       write(10),USTAR,HMXL,VISC,BFSFC
-       close(10)
+!      if(my_task == master_task)then
+!      open(unit=10,file="/home/aketh/ocn_correctness_data/changed.txt",status="unknown",position="append",action="write",form="unformatted")
+!       write(10),USTAR,HMXL,VISC,BFSFC
+!       close(10)
 
-      endif
+!      endif
 
 !-----------------------------------------------------------------------
 !EOC
