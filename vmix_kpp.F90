@@ -944,6 +944,8 @@
 !  floor values
 !
 !-----------------------------------------------------------------------
+   
+   start_time = omp_get_wtime()
 
    do k=1,km-1           
 
@@ -1020,6 +1022,23 @@
          enddo
       endif
    enddo
+
+
+   end_time = omp_get_wtime()
+
+
+   if(my_task == master_task)then
+   print *,"Time at where statments is ",end_time - start_time
+   endif
+
+      if(my_task == master_task)then
+      open(unit=10,file="/home/aketh/ocn_correctness_data/changed.txt",status="unknown",position="append",action="write",form="unformatted")
+       write(10),KPP_SRC
+       close(10)
+
+      endif
+
+
 
 !-----------------------------------------------------------------------
 !
@@ -1128,13 +1147,6 @@
          enddo 
          
       enddo
-   endif
-
-   end_time = omp_get_wtime()
-
-
-   if(my_task == master_task)then
-   print *,"Time at where statments is ",end_time - start_time
    endif
 
 !      if(my_task == master_task)then
