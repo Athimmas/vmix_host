@@ -1004,24 +1004,53 @@
 !
 !-----------------------------------------------------------------------
 
-   do n=1,nt
-      mt2=min(n,2)
-      KPP_SRC(:,:,1,n,bid) = STF(:,:,n)/dz(1)           &
-                             *(-VDC(:,:,1,mt2)*GHAT(:,:,1))
-      if (partial_bottom_cells) then
+   if (partial_bottom_cells) then
+
+       do n=1,nt
+         do j=1,ny_block
+          do i=1,nx_block
+
+              mt2=min(n,2) 
+              KPP_SRC(i,j,1,n,bid) = STF(i,j,n)/dz(1)           &
+                                   *(-VDC(i,j,1,mt2)*GHAT(i,j,1))
+          enddo
+         enddo  
+
          do k=2,km
-            KPP_SRC(:,:,k,n,bid) = STF(:,:,n)/DZT(:,:,k,bid)         &
-                                 *( VDC(:,:,k-1,mt2)*GHAT(:,:,k-1)   &
-                                   -VDC(:,:,k  ,mt2)*GHAT(:,:,k  ))
-         enddo
+            do j=1,ny_block
+               do i=1,nx_block
+
+                     KPP_SRC(i,j,k,n,bid) = STF(i,j,n)/DZT(i,j,k,bid)         &
+                                          *( VDC(i,j,k-1,mt2)*GHAT(i,j,k-1)   &
+                                          -VDC(i,j,k  ,mt2)*GHAT(i,j,k  ))
+
+                enddo
+            enddo    
+
+
+         enddo  !end k loop
+        enddo !end n loop  
+
       else
+
+       do n=1,nt
+         do j=1,ny_block
+          do i=1,nx_block
+
+              mt2=min(n,2)
+              KPP_SRC(i,j,1,n,bid) = STF(i,j,n)/dz(1)           &
+                                   *(-VDC(i,j,1,mt2)*GHAT(i,j,1))
+          enddo
+         enddo
+
          do k=2,km
             KPP_SRC(:,:,k,n,bid) = STF(:,:,n)/dz(k)                  &
                                  *( VDC(:,:,k-1,mt2)*GHAT(:,:,k-1)   &
                                    -VDC(:,:,k  ,mt2)*GHAT(:,:,k  ))
          enddo
-      endif
-   enddo
+       enddo
+
+   endif
 
 
    end_time = omp_get_wtime()
@@ -1032,7 +1061,7 @@
    endif
 
       if(my_task == master_task)then
-      open(unit=10,file="/home/aketh/ocn_correctness_data/changed.txt",status="unknown",position="append",action="write",form="unformatted")
+      open(unit=10,file="/home/aketh/ocn_correctness_data/changed_OMP.txt",status="unknown",position="append",action="write",form="unformatted")
        write(10),KPP_SRC
        close(10)
 
