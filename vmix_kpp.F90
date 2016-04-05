@@ -944,27 +944,47 @@
 !  floor values
 !
 !-----------------------------------------------------------------------
-   
-   start_time = omp_get_wtime()
 
+  start_time = omp_get_wtime()
+   
    do k=1,km-1           
 
       if (partial_bottom_cells) then
-         WORK1 = DBLOC(:,:,k)/(p5*(DZT(:,:,k  ,bid) + &
-                                   DZT(:,:,k+1,bid)))
+       do j=1,ny_block
+        do i=1,nx_block  
+         WORK1(i,j) = DBLOC(i,j,k)/(p5*(DZT(i,j,k  ,bid) + &
+                                   DZT(i,j,k+1,bid)))
+        enddo
+       enddo 
+
       else
-         WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
+
+       do j=1,ny_block
+        do i=1,nx_block       
+         WORK1(i,j) = DBLOC(i,j,k)/(zgrid(k) - zgrid(k+1))
+        enddo
+       enddo
+ 
       end if
 
-      if (BVSQcon /= c0) then
-         WORK2 = min(c1-(max(WORK1,BVSQcon))/BVSQcon, c1)
-         FCON  = (c1 - WORK2*WORK2)**3
+     if (BVSQcon /= c0) then
+       do j=1,ny_block
+        do i=1,nx_block
+
+              WORK2(i,j) = min(c1-(max(WORK1(i,j),BVSQcon))/BVSQcon, c1)
+              FCON(i,j)  = (c1 - WORK2(i,j)*WORK2(i,j))**3
+ 
+         enddo
+       enddo
+
       else
+
          where (WORK1 > c0)
             FCON = c0
          elsewhere
             FCON = c1
          end where
+
       endif
 
       !*** add convection and reset sea floor values to zero
@@ -978,7 +998,7 @@
             VDC(i,j,k,2) = VDC(i,j,k,2) + convect_diff * FCON(i,j)
          endif
          if (k >= KMT(i,j,bid)) then
-         	  VISC(i,j,k  ) = c0
+                  VISC(i,j,k  ) = c0
             VDC (i,j,k,1) = c0
             VDC (i,j,k,2) = c0
          endif
@@ -994,6 +1014,21 @@
 
    enddo
 
+  end_time = omp_get_wtime()
+
+
+   if(my_task == master_task)then
+   print *,"Time at where statments is ",end_time - start_time
+   endif
+
+      if(my_task == master_task)then
+      open(unit=10,file="/home/aketh/ocn_correctness_data/changed.txt",status="unknown",position="append",action="write",form="unformatted")
+       write(10),WORK1,VVC,VDC,VISC,WORK2
+       close(10)
+
+      endif
+
+
    VDC(:,:,km,:) = c0
    VVC(:,:,km)   = c0
 
@@ -1004,19 +1039,23 @@
 !
 !-----------------------------------------------------------------------
 
+   start_time = omp_get_wtime()
+
    if (partial_bottom_cells) then
 
        do n=1,nt
+         mt2=min(n,2)
+         !$OMP PARALLEL DO DEFAULT(SHARED)PRIVATE(j,i)NUM_THREADS(16)  
          do j=1,ny_block
           do i=1,nx_block
 
-              mt2=min(n,2) 
               KPP_SRC(i,j,1,n,bid) = STF(i,j,n)/dz(1)           &
                                    *(-VDC(i,j,1,mt2)*GHAT(i,j,1))
           enddo
          enddo  
 
          do k=2,km
+           !$OMP PARALLEL DO DEFAULT(SHARED)PRIVATE(j,i)NUM_THREADS(16)
             do j=1,ny_block
                do i=1,nx_block
 
@@ -1026,48 +1065,38 @@
 
                 enddo
             enddo    
-
-
          enddo  !end k loop
+
         enddo !end n loop  
 
       else
 
        do n=1,nt
+         mt2=min(n,2) 
+         !$OMP PARALLEL DO DEFAULT(SHARED)PRIVATE(j,i)NUM_THREADS(16)  
          do j=1,ny_block
           do i=1,nx_block
 
-              mt2=min(n,2)
               KPP_SRC(i,j,1,n,bid) = STF(i,j,n)/dz(1)           &
                                    *(-VDC(i,j,1,mt2)*GHAT(i,j,1))
           enddo
          enddo
 
          do k=2,km
-            KPP_SRC(:,:,k,n,bid) = STF(:,:,n)/dz(k)                  &
-                                 *( VDC(:,:,k-1,mt2)*GHAT(:,:,k-1)   &
-                                   -VDC(:,:,k  ,mt2)*GHAT(:,:,k  ))
-         enddo
-       enddo
+          !$OMP PARALLEL DO DEFAULT(SHARED)PRIVATE(j,i)NUM_THREADS(16)
+          do j=1,ny_block
+            do i=1,nx_block
+
+            KPP_SRC(i,j,k,n,bid) = STF(i,j,n)/dz(k)                  &
+                                 *( VDC(i,j,k-1,mt2)*GHAT(i,j,k-1)   &
+                                   -VDC(i,j,k  ,mt2)*GHAT(i,j,k  ))
+            enddo
+           enddo 
+         enddo !end k loop
+
+       enddo !end n loop 
 
    endif
-
-
-   end_time = omp_get_wtime()
-
-
-   if(my_task == master_task)then
-   print *,"Time at where statments is ",end_time - start_time
-   endif
-
-      if(my_task == master_task)then
-      open(unit=10,file="/home/aketh/ocn_correctness_data/changed_OMP.txt",status="unknown",position="append",action="write",form="unformatted")
-       write(10),KPP_SRC
-       close(10)
-
-      endif
-
-
 
 !-----------------------------------------------------------------------
 !
