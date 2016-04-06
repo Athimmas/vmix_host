@@ -2874,7 +2874,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) ::  k,kup,knxt
+   integer (int_kind) ::  k,kup,knxt,i,j
 
    real (r8), dimension(nx_block,ny_block) :: &
       ALPHADT,           &! alpha*DT  across interfaces
@@ -2928,44 +2928,50 @@
          ALPHADT = c0
          BETADS  = c0
 
-      endif       
-
+      endif
 !-----------------------------------------------------------------------
 !
 !     salt fingering case
 !
 !-----------------------------------------------------------------------
 
-      where ( ALPHADT > BETADS .and. BETADS > c0 )
+      do j=1,ny_block
+       do i=1,nx_block 
 
-         RRHO       = MIN(ALPHADT/BETADS, Rrho0)
-         DIFFDD     = dsfmax*(c1-(RRHO-c1)/(Rrho0-c1))**3
-         VDC(:,:,k,1) = VDC(:,:,k,1) + 0.7_r8*DIFFDD
-         VDC(:,:,k,2) = VDC(:,:,k,2) + DIFFDD
+           if ( ALPHADT(i,j) > BETADS(i,j) .and. BETADS(i,j) > c0 ) then
 
-      endwhere
+              RRHO(i,j)       = MIN(ALPHADT(i,j)/BETADS(i,j), Rrho0)
+              DIFFDD(i,j)     = dsfmax*(c1-(RRHO(i,j)-c1)/(Rrho0-c1))**3
+              VDC(i,j,k,1) = VDC(i,j,k,1) + 0.7_r8*DIFFDD(i,j)
+              VDC(i,j,k,2) = VDC(i,j,k,2) + DIFFDD(i,j)
 
+           endif
+   
 !-----------------------------------------------------------------------
 !
 !     diffusive convection
 !
 !-----------------------------------------------------------------------
 
-      where ( ALPHADT < c0 .and. BETADS < c0 .and. ALPHADT > BETADS )
-         RRHO    = ALPHADT / BETADS
-         DIFFDD  = 1.5e-2_r8*0.909_r8* &
-                   exp(4.6_r8*exp(-0.54_r8*(c1/RRHO-c1)))
-         PRANDTL = 0.15_r8*RRHO
-      elsewhere
-         RRHO    = c0
-         DIFFDD  = c0
-         PRANDTL = c0
-      endwhere
+          if ( ALPHADT(i,j) < c0 .and. BETADS(i,j) < c0 .and. ALPHADT(i,j) > BETADS(i,j) ) then
+             RRHO(i,j)    = ALPHADT(i,j) / BETADS(i,j)
+             DIFFDD(i,j)  = 1.5e-2_r8*0.909_r8* &
+                            exp(4.6_r8*exp(-0.54_r8*(c1/RRHO(i,j)-c1)))
+              PRANDTL(i,j) = 0.15_r8*RRHO(i,j)
+          else
+              RRHO(i,j)    = c0
+              DIFFDD(i,j)  = c0
+              PRANDTL(i,j) = c0
+          endif
 
-      where (RRHO > p5) PRANDTL = (1.85_r8 - 0.85_r8/RRHO)*RRHO
+          if (RRHO(i,j) > p5) PRANDTL(i,j) = (1.85_r8 - 0.85_r8/RRHO(i,j))*RRHO(i,j)
 
-      VDC(:,:,k,1) = VDC(:,:,k,1) + DIFFDD
-      VDC(:,:,k,2) = VDC(:,:,k,2) + PRANDTL*DIFFDD
+          VDC(i,j,k,1) = VDC(i,j,k,1) + DIFFDD(i,j)
+          VDC(i,j,k,2) = VDC(i,j,k,2) + PRANDTL(i,j)*DIFFDD(i,j)
+    
+      enddo
+     enddo
+     
 
    end do
 
