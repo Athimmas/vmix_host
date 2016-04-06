@@ -854,7 +854,12 @@
 !
 !-----------------------------------------------------------------------
 
+   start_time = omp_get_wtime()
+
    call buoydiff(DBLOC, DBSFC, TRCR, this_block)
+ 
+   end_time = omp_get_wtime()
+
 
    if (lniw_mixing) then
 !-----------------------------------------------------------------------
@@ -921,8 +926,15 @@
 !
 !-----------------------------------------------------------------------
 
+   !start_time = omp_get_wtime()
+
    call blmix(VISC, VDC, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, &
               KBL, GHAT, this_block) 
+
+   !end_time = omp_get_wtime()
+
+
+   !print *,"time at blmix is ",end_time - start_time
 
 !-----------------------------------------------------------------------
 !
@@ -2375,6 +2387,8 @@
       VISCP, DIFTP, DIFSP, F1, &
       WORK1,WORK2
 
+   real (r8) start_time, end_time
+
 !-----------------------------------------------------------------------
 !
 !  compute velocity scales at hbl
@@ -2428,6 +2442,8 @@
 !-----------------------------------------------------------------------
 
    F1 = STABLE*c5*BFSFC/(USTAR**4+eps)
+
+   !start_time = omp_get_wtime()
 
    do k=1,km
 
@@ -2546,6 +2562,10 @@
 
    enddo
 
+   !end_time = omp_get_wtime()
+
+   !print *,"Time at non parallel loop is", end_time - start_time
+
    DAT1 = min(DAT1,c0)
 
 !-----------------------------------------------------------------------
@@ -2555,7 +2575,10 @@
 !  transport term (GHAT).
 !
 !-----------------------------------------------------------------------
+   
+   start_time = omp_get_wtime()
 
+   !$OMP PARALLEL DO DEFAULT(SHARED)PRIVATE(k,SIGMA,F1,WM,WS)NUM_THREADS(16)
    do k = 1,km       
 
       if (partial_bottom_cells) then
@@ -2594,12 +2617,17 @@
 
    end do
 
+   end_time = omp_get_wtime()
+
+   print *,"Time at loop1 is ",end_time - start_time
 !-----------------------------------------------------------------------
 !
 !  find diffusivities at kbl-1 grid level
 !
 !-----------------------------------------------------------------------
 
+   !start_time = omp_get_wtime()
+  
    !DIR$ COLLAPSE
    do j=1,ny_block
    do i=1,nx_block
@@ -2629,11 +2657,17 @@
    end do
    end do
 
+   !end_time = omp_get_wtime()
+
+   !print *,"Time at loop2 is ",end_time - start_time
+
 !-----------------------------------------------------------------------
 !
 !  compute the enhanced mixing
 !
 !-----------------------------------------------------------------------
+
+   !start_time = omp_get_wtime()
 
    !DIR$ NOVECTOR
    do k=1,km-1
@@ -2683,11 +2717,17 @@
       end do
    end do
 
+   !end_time = omp_get_wtime()
+
+   !print *,"Time at loop3 is ",end_time - start_time
+
 !-----------------------------------------------------------------------
 !
 !  combine interior and boundary layer coefficients and nonlocal term
 !
 !-----------------------------------------------------------------------
+
+   !start_time = omp_get_wtime()
 
    !DIR$ NOVECTOR
    do k=1,km
@@ -2705,6 +2745,10 @@
       end do
       end do
    enddo
+
+   !end_time = omp_get_wtime()
+
+   !print *,"Time at loop4 is ",end_time - start_time
 
 !-----------------------------------------------------------------------
 !EOC
