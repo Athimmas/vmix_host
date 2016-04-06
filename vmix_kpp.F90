@@ -2913,27 +2913,33 @@
                               this_block,                            &
                               RHOFULL=RRHO, DRHODT=TALPHA(:,:,knxt), &
                                             DRHODS= SBETA(:,:,knxt))
+      endif 
 
-         ALPHADT = -p5*(TALPHA(:,:,kup) + TALPHA(:,:,knxt)) &
-                      *(TRCR(:,:,k,1) - TRCR(:,:,k+1,1))
+      !!$OMP PARLELLEL DO DEFAULT(SHARED)PRIVATE(J,I)NUM_THREADS(16)
+      do j=1,ny_block
+       do i=1,nx_block
 
-         BETADS  = p5*( SBETA(:,:,kup) +  SBETA(:,:,knxt)) &
-                     *(TRCR(:,:,k,2) - TRCR(:,:,k+1,2))
+        if (k < km) then
 
-      else
+            ALPHADT(i,j) = -p5*(TALPHA(i,j,kup) + TALPHA(i,j,knxt)) &
+                        *(TRCR(i,j,k,1) - TRCR(i,j,k+1,1))
 
-         ALPHADT = c0
-         BETADS  = c0
+            BETADS(i,j)  = p5*( SBETA(i,j,kup) +  SBETA(i,j,knxt)) &
+                        *(TRCR(i,j,k,2) - TRCR(i,j,k+1,2))
+ 
+        else
 
-      endif
+            ALPHADT(i,j) = c0
+
+            BETADS(i,j)  = c0
+
+        endif
+
 !-----------------------------------------------------------------------
 !
 !     salt fingering case
 !
 !-----------------------------------------------------------------------
-
-      do j=1,ny_block
-       do i=1,nx_block 
 
            if ( ALPHADT(i,j) > BETADS(i,j) .and. BETADS(i,j) > c0 ) then
 
@@ -2970,10 +2976,13 @@
      enddo
   
       if(k < km) then   
-         kup  = knxt
-         knxt = 3 - kup      
-      endif
 
+         kup  = knxt
+         knxt = 3 - kup     
+
+      endif
+              
+ 
    end do
 
 !-----------------------------------------------------------------------
