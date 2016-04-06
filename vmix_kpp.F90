@@ -894,20 +894,8 @@
 !  compute double diffusion if desired
 !
 !-----------------------------------------------------------------------
-   start_time = omp_get_wtime()
 
    if (ldbl_diff) call ddmix(VDC, TRCR, this_block)
-
-   end_time = omp_get_wtime()
-
-   if(my_task == master_task) then
-   print *,"time at dd is ",end_time - start_time
-
-     open(unit=10,file="/home/aketh/ocn_correctness_data/changed.txt",status="unknown",position="append",action="write",form="unformatted")
-     write(10),VDC
-     close(10)
-
-   endif
 
 !-----------------------------------------------------------------------
 !
@@ -3049,14 +3037,19 @@
 !
 !-----------------------------------------------------------------------
 
+   !$OMP PARALLEL DO DEFAULT(SHARED)PRIVATE(TEMPK,RHO1,RHOKM,RHOK)NUM_THREADS(16)
    do k = 2,km
 
       TEMPK(:,:,klvl) = merge(-c2,TRCR(:,:,k,1),TRCR(:,:,k,1) < -c2)
 
+      TEMPK(:,:,kprev) = merge(-c2,TRCR(:,:,k-1,1),TRCR(:,:,k-1,1) < -c2)
+
       call state(k, k, TEMPSFC,          TRCR(:,:,1  ,2), &
                        this_block, RHOFULL=RHO1)
+
       call state(k, k, TEMPK(:,:,kprev), TRCR(:,:,k-1,2), &
                        this_block, RHOFULL=RHOKM)
+
       call state(k, k, TEMPK(:,:,klvl),  TRCR(:,:,k  ,2), &
                        this_block, RHOFULL=RHOK)
 
@@ -3073,10 +3066,6 @@
          if (k-1 >= KMT(i,j,bid)) DBLOC(i,j,k-1) = c0
       end do
       end do
-
-      ktmp  = klvl
-      klvl  = kprev
-      kprev = ktmp
 
    enddo
 
