@@ -2920,9 +2920,6 @@
          BETADS  = p5*( SBETA(:,:,kup) +  SBETA(:,:,knxt)) &
                      *(TRCR(:,:,k,2) - TRCR(:,:,k+1,2))
 
-         kup  = knxt
-         knxt = 3 - kup
-
       else
 
          ALPHADT = c0
@@ -2971,7 +2968,11 @@
     
       enddo
      enddo
-     
+  
+      if(k < km) then   
+         kup  = knxt
+         knxt = 3 - kup      
+      endif
 
    end do
 
