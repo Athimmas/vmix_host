@@ -2897,12 +2897,9 @@
    kup  = 1
    knxt = 2
 
-   !PRANDTL = merge(-c2,TRCR(:,:,1,1),TRCR(:,:,1,1) < -c2)
 
-   !call state(1, 1, PRANDTL, TRCR(:,:,1,2), this_block, &
-   !                 RHOFULL=RRHO, &
-   !                 DRHODT=TALPHA(:,:,kup), DRHODS=SBETA(:,:,kup))
-
+   !$OMP PARALLEL DO &
+   !$OMP DEFAULT(SHARED)PRIVATE(K,PRANDTL,RRHO,ALPHADT,BETADS,TALPHA,SBETA,DIFFDD)NUM_THREADS(16)
    do k=1,km
 
       if ( k < km ) then
@@ -2926,9 +2923,6 @@
 
          BETADS  = p5*( SBETA(:,:,kup) +  SBETA(:,:,knxt)) &
                      *(TRCR(:,:,k,2) - TRCR(:,:,k+1,2))
-
-         !kup  = knxt
-         !knxt = 3 - kup
 
       else
 
